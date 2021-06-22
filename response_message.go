@@ -1,4 +1,4 @@
-package util
+package goutil
 
 import (
 	"log"
@@ -49,7 +49,7 @@ func CreateResponseParam(key string, param string) map[string]interface{} {
 	if err != nil {
 		return map[string]interface{}{
 			"error_code": 500,
-			"error_msg":  "code of ErrorCodeTable not integer, please fix it, util/error-message.go",
+			"error_msg":  "code of ErrorCodeTable not integer, please fix it, goutil/error-message.go",
 		}
 	}
 	errMsg := setMessage(ErrorCodeTable[key][1], param)
