@@ -24,7 +24,17 @@ func DefaultCipher() Cipher {
 	return Cipher{
 		TokenExpiredHours: 24,
 		HashCost:          11,
-		PassPhrase:        "This is a private key!",
+		PassPhrase:        "default passphrase",
+	}
+}
+
+// NewCipher new a cihper
+func NewCipher(tokenExpiredHours, hashCost int, passPhrase string) Cipher {
+	// PrivateKey used to encrypt and decrypt, lenght must be 32
+	return Cipher{
+		TokenExpiredHours: tokenExpiredHours,
+		HashCost:          hashCost,
+		PassPhrase:        passPhrase,
 	}
 }
 
