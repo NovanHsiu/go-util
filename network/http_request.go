@@ -110,7 +110,7 @@ func SoapRequest(url string, payload []byte) ([]byte, error) {
 	}
 
 	// set the content type header, as well as the oter required headers
-	req.Header.Set("Content-type", "text/xml")
+	req.Header.Set("Content-type", "text/xml;charset=utf-8")
 
 	// prepare the client request
 	client := &http.Client{
