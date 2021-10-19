@@ -51,47 +51,47 @@ func PostBodyRequest(url string, jsonStr string) (map[string]interface{}, error)
 	return extractBody(res)
 }
 
-func FileUploadRequest(url string, params map[string]string, paramName, path string) (map[string]interface{}, error) {
+func PostFormDataWithFilesRequest(url string, params map[string]string, paramName string, paths []string) (map[string]interface{}, error) {
 	pt := time.Now()
-	file, err := os.Open(path)
-	if err != nil {
-		log.Println("FileUploadRequest error: ", err)
-		return nil, err
-	}
-	defer file.Close()
-
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
-	part, err := writer.CreateFormFile(paramName, filepath.Base(path))
-	if err != nil {
-		log.Println("FileUploadRequest create file error: ", err)
-		return nil, err
-	}
-	_, err = io.Copy(part, file)
-	if err != nil {
-		log.Println("FileUploadRequest file copy error: ", err)
-		return nil, err
+	for _, path := range paths {
+		file, err := os.Open(path)
+		if err != nil {
+			log.Println("PostFormDataWithFilesRequest error: ", err)
+			return nil, err
+		}
+		defer file.Close()
+		part, err := writer.CreateFormFile(paramName, filepath.Base(path))
+		if err != nil {
+			log.Println("PostFormDataWithFilesRequest create file error: ", err)
+			return nil, err
+		}
+		_, err = io.Copy(part, file)
+		if err != nil {
+			log.Println("PostFormDataWithFilesRequest file copy error: ", err)
+			return nil, err
+		}
 	}
 	for key, val := range params {
 		_ = writer.WriteField(key, val)
 	}
-	err = writer.Close()
+	err := writer.Close()
 	if err != nil {
-		log.Println("FileUploadRequest writer error: ", err)
+		log.Println("PostFormDataWithFilesRequest writer error: ", err)
 		return nil, err
 	}
-
 	req, err := http.NewRequest("POST", url, body)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	if err != nil {
-		log.Println("FileUploadRequest http new request error: ", err)
+		log.Println("PostFormDataWithFilesRequest http new request error: ", err)
 		return nil, err
 	}
 	client := &http.Client{}
 	res, err := client.Do(req)
 	defer client.CloseIdleConnections()
 	if err != nil {
-		log.Println("FileUploadRequest http client do error: ", err)
+		log.Println("PostFormDataWithFilesRequest http client do error: ", err)
 		return nil, err
 	}
 	showRespTimeLog(url, pt)
