@@ -98,14 +98,14 @@ func PostFormDataWithFilesRequest(url string, params map[string]string, paramNam
 	return extractBody(res)
 }
 
-func SoapRequest(url string, payload []byte) ([]byte, error) {
+func PostSoapRequest(url string, payload []byte) ([]byte, error) {
 	pt := time.Now()
 	httpMethod := "POST"
 
 	// prepare the request
 	req, err := http.NewRequest(httpMethod, url, bytes.NewReader(payload))
 	if err != nil {
-		log.Println("SoapRequest error creating request object", err)
+		log.Println("PostSoapRequest error creating request object", err)
 		return nil, err
 	}
 
@@ -125,7 +125,7 @@ func SoapRequest(url string, payload []byte) ([]byte, error) {
 	res, err := client.Do(req)
 	defer client.CloseIdleConnections()
 	if err != nil {
-		log.Println("SoapRequest error http client do", err)
+		log.Println("PostSoapRequest error http client do", err)
 		return nil, err
 	}
 	showRespTimeLog(url, pt)
