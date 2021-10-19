@@ -17,24 +17,24 @@ import (
 
 const RequestTimeOutSecond = 30
 
-func extractBody(res *http.Response) (map[string]interface{}, error) {
+func extractBody(res *http.Response) (int, map[string]interface{}, error) {
 	body, _ := ioutil.ReadAll(res.Body)
 	jsonMap := make(map[string]interface{})
 	err := json.Unmarshal(body, &jsonMap)
 	if err != nil {
 		log.Println("extractBody json unmarshal error", err)
-		return nil, err
+		return 500, nil, err
 	}
-	return jsonMap, nil
+	return res.StatusCode, jsonMap, nil
 }
 
-func PostBodyRequest(url string, jsonStr string) (map[string]interface{}, error) {
+func PostBodyRequest(url string, jsonStr string) (int, map[string]interface{}, error) {
 	pt := time.Now()
 	jsonBytes := []byte(jsonStr)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonBytes))
 	if err != nil {
 		log.Println("PostBodyRequest http client new request error:", err)
-		return nil, err
+		return 500, nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Connection", "application/json")
@@ -44,14 +44,14 @@ func PostBodyRequest(url string, jsonStr string) (map[string]interface{}, error)
 	defer client.CloseIdleConnections()
 	if err != nil {
 		log.Println("PostBodyRequest http client do error:", err)
-		return nil, err
+		return 500, nil, err
 	}
 	defer res.Body.Close()
 	showRespTimeLog(url, pt)
 	return extractBody(res)
 }
 
-func PostFormDataWithFilesRequest(url string, params map[string]string, paramName string, paths []string) (map[string]interface{}, error) {
+func PostFormDataWithFilesRequest(url string, params map[string]string, paramName string, paths []string) (int, map[string]interface{}, error) {
 	pt := time.Now()
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
@@ -59,18 +59,18 @@ func PostFormDataWithFilesRequest(url string, params map[string]string, paramNam
 		file, err := os.Open(path)
 		if err != nil {
 			log.Println("PostFormDataWithFilesRequest error: ", err)
-			return nil, err
+			return 500, nil, err
 		}
 		defer file.Close()
 		part, err := writer.CreateFormFile(paramName, filepath.Base(path))
 		if err != nil {
 			log.Println("PostFormDataWithFilesRequest create file error: ", err)
-			return nil, err
+			return 500, nil, err
 		}
 		_, err = io.Copy(part, file)
 		if err != nil {
 			log.Println("PostFormDataWithFilesRequest file copy error: ", err)
-			return nil, err
+			return 500, nil, err
 		}
 	}
 	for key, val := range params {
@@ -79,26 +79,26 @@ func PostFormDataWithFilesRequest(url string, params map[string]string, paramNam
 	err := writer.Close()
 	if err != nil {
 		log.Println("PostFormDataWithFilesRequest writer error: ", err)
-		return nil, err
+		return 500, nil, err
 	}
 	req, err := http.NewRequest("POST", url, body)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	if err != nil {
 		log.Println("PostFormDataWithFilesRequest http new request error: ", err)
-		return nil, err
+		return 500, nil, err
 	}
 	client := &http.Client{}
 	res, err := client.Do(req)
 	defer client.CloseIdleConnections()
 	if err != nil {
 		log.Println("PostFormDataWithFilesRequest http client do error: ", err)
-		return nil, err
+		return 500, nil, err
 	}
 	showRespTimeLog(url, pt)
 	return extractBody(res)
 }
 
-func PostSoapRequest(url string, payload []byte) ([]byte, error) {
+func PostSoapRequest(url string, payload []byte) (int, []byte, error) {
 	pt := time.Now()
 	httpMethod := "POST"
 
@@ -106,7 +106,7 @@ func PostSoapRequest(url string, payload []byte) ([]byte, error) {
 	req, err := http.NewRequest(httpMethod, url, bytes.NewReader(payload))
 	if err != nil {
 		log.Println("PostSoapRequest error creating request object", err)
-		return nil, err
+		return 500, nil, err
 	}
 
 	// set the content type header, as well as the oter required headers
@@ -126,14 +126,15 @@ func PostSoapRequest(url string, payload []byte) ([]byte, error) {
 	defer client.CloseIdleConnections()
 	if err != nil {
 		log.Println("PostSoapRequest error http client do", err)
-		return nil, err
+		return 500, nil, err
 	}
 	showRespTimeLog(url, pt)
 	// read and parse the response body
-	return ioutil.ReadAll(res.Body)
+	bodyBytes, err := ioutil.ReadAll(res.Body)
+	return res.StatusCode, bodyBytes, err
 }
 
-func PostFormDataRequest(url string, params map[string]string) (map[string]interface{}, error) {
+func PostFormDataRequest(url string, params map[string]string) (int, map[string]interface{}, error) {
 	pt := time.Now()
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
@@ -143,26 +144,26 @@ func PostFormDataRequest(url string, params map[string]string) (map[string]inter
 	err := writer.Close()
 	if err != nil {
 		log.Println("PostFormDataRequest writer error: ", err)
-		return nil, err
+		return 500, nil, err
 	}
 	req, err := http.NewRequest("POST", url, body)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	if err != nil {
 		log.Println("PostFormDataRequest http new request error: ", err)
-		return nil, err
+		return 500, nil, err
 	}
 	client := &http.Client{}
 	res, err := client.Do(req)
 	defer client.CloseIdleConnections()
 	if err != nil {
 		log.Println("PostFormDataRequest http client do error: ", err)
-		return nil, err
+		return 500, nil, err
 	}
 	showRespTimeLog(url, pt)
 	return extractBody(res)
 }
 
-func GetQueryRequest(url string, params map[string]string) (map[string]interface{}, error) {
+func GetQueryRequest(url string, params map[string]string) (int, map[string]interface{}, error) {
 	pt := time.Now()
 	query := ""
 	for key, val := range params {
@@ -182,14 +183,14 @@ func GetQueryRequest(url string, params map[string]string) (map[string]interface
 	req, err := http.NewRequest("GET", url+query, nil)
 	if err != nil {
 		log.Println("GetQueryRequest http client new request error:", err)
-		return nil, err
+		return 500, nil, err
 	}
 	//req.Header.Add("Authorization", "")
 	res, err := client.Do(req)
 	defer client.CloseIdleConnections()
 	if err != nil {
 		log.Println("GetQueryRequest http client do error:", err)
-		return nil, err
+		return 500, nil, err
 	}
 	defer res.Body.Close()
 	showRespTimeLog(url, pt)
