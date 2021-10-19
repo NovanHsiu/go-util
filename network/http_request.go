@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-const RequestTimeOutSecond = 30
+var RequestTimeOutSecond = 30
 
 func extractBody(res *http.Response) (int, map[string]interface{}, error) {
 	body, _ := ioutil.ReadAll(res.Body)
@@ -39,7 +39,12 @@ func PostBodyRequest(url string, jsonStr string) (int, map[string]interface{}, e
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Connection", "application/json")
 
-	client := &http.Client{}
+	client := &http.Client{
+		Timeout: time.Duration(time.Duration(RequestTimeOutSecond) * time.Second),
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		},
+	}
 	res, err := client.Do(req)
 	defer client.CloseIdleConnections()
 	if err != nil {
@@ -87,7 +92,12 @@ func PostFormDataWithFilesRequest(url string, params map[string]string, paramNam
 		log.Println("PostFormDataWithFilesRequest http new request error: ", err)
 		return 500, nil, err
 	}
-	client := &http.Client{}
+	client := &http.Client{
+		Timeout: time.Duration(time.Duration(RequestTimeOutSecond) * time.Second),
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		},
+	}
 	res, err := client.Do(req)
 	defer client.CloseIdleConnections()
 	if err != nil {
@@ -114,6 +124,7 @@ func PostSoapRequest(url string, payload []byte) (int, []byte, error) {
 
 	// prepare the client request
 	client := &http.Client{
+		Timeout: time.Duration(time.Duration(RequestTimeOutSecond) * time.Second),
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
 				InsecureSkipVerify: true,
@@ -152,7 +163,12 @@ func PostFormDataRequest(url string, params map[string]string) (int, map[string]
 		log.Println("PostFormDataRequest http new request error: ", err)
 		return 500, nil, err
 	}
-	client := &http.Client{}
+	client := &http.Client{
+		Timeout: time.Duration(time.Duration(RequestTimeOutSecond) * time.Second),
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		},
+	}
 	res, err := client.Do(req)
 	defer client.CloseIdleConnections()
 	if err != nil {
@@ -175,7 +191,7 @@ func GetQueryRequest(url string, params map[string]string) (int, map[string]inte
 		query += key + "=" + val
 	}
 	client := &http.Client{
-		Timeout: time.Duration(RequestTimeOutSecond * time.Second),
+		Timeout: time.Duration(time.Duration(RequestTimeOutSecond) * time.Second),
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		},
@@ -203,7 +219,7 @@ func CheckInternetConnected() bool {
 
 func CheckHttpServiceConnected(httpUrl string) bool {
 	client := &http.Client{
-		Timeout: time.Duration(RequestTimeOutSecond * time.Second),
+		Timeout: time.Duration(time.Duration(RequestTimeOutSecond) * time.Second),
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		},
@@ -224,7 +240,7 @@ func CheckHttpServiceConnected(httpUrl string) bool {
 func DownloadFile(url string, filepath string) error {
 	// download the file and check this url is ok
 	client := &http.Client{
-		Timeout: time.Duration(RequestTimeOutSecond * time.Second),
+		Timeout: time.Duration(time.Duration(RequestTimeOutSecond) * time.Second),
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		},

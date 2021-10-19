@@ -28,3 +28,14 @@ func TestCipher(t *testing.T) {
 	passwd := cp.EncodePassword("abcdefg")
 	t.Errorf("TestCipher failed! password: %s", passwd)
 }
+
+func TestPostFormDataWithFilesRequest(t *testing.T) {
+	/*url := "http://localhost:3000/api"
+	scode, resBody, err := network.PostFormDataWithFilesRequest(url+"/files/common", map[string]string{"dir": "test"}, "upload_files", []string{"run_test.sh"})
+	if err != nil {
+		t.Errorf("TestPostFormDataWithFilesRequest failed! %v", err)
+	} else {
+		fmt.Println(scode, resBody)
+	}*/
+	fmt.Println("pass")
+}
