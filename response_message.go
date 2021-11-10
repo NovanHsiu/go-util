@@ -19,6 +19,7 @@ var ErrorCodeTable = map[string][]string{
 	"400.4": {"40004", "parameter structure error"},                      // structure error.
 	"400.5": {"40005", "password and confirmed password dose not match"}, // password not matched error.
 	"400.6": {"40006", atParameter},                                      // time error: start_time > end_time
+	"400.7": {"40007", "pararameter's resource not found: @param"},       // resource defined by parameters not found
 	// 401
 	"401.1": {"40101", "authentication error@param"},                                // Authentication error!
 	"401.2": {"40102", "wrong password"},                                            // Wrong password.
