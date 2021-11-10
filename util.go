@@ -99,7 +99,7 @@ func SetRequestBodyParams(body io.ReadCloser) (map[string]interface{}, error) {
 // GetMimeType get mimetype of file from *gin.Context.ContentType()
 // example format of contentType: Content-Type:[text/plain]] multipart/form-data
 func GetMimeType(contentType string) string {
-	if strings.Index(contentType, "[") < 0 {
+	if !strings.Contains(contentType, "[") {
 		return ""
 	}
 	return contentType[strings.Index(contentType, "[")+1 : strings.Index(contentType, "]")]
@@ -129,7 +129,7 @@ func GetRandomTempDirName(basePath string, length int) (rndtxt string) {
 		if _, err := os.Stat(basePath + "/" + rndtxt); os.IsNotExist(err) {
 			break
 		}
-		time.Sleep(10)
+		time.Sleep(10 * time.Millisecond)
 		rndtxt = GetRandomString(length)
 	}
 	return basePath + "/" + rndtxt
@@ -180,10 +180,7 @@ func RemoveSuffixVersion(name string) string {
 // MatchDatePattern check date string is match pattern "YYYY-MM-DD"，ex:"2015-11-26"
 func MatchDatePattern(date string) bool {
 	var validDate = regexp.MustCompile(`^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])$`)
-	if !validDate.MatchString(date) {
-		return false
-	}
-	return true
+	return validDate.MatchString(date)
 }
 
 // ToRocDate change date to roc year format, ex: 1951-12-11 -> 401211
