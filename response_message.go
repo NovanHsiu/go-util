@@ -58,22 +58,25 @@ func CreateResponse(key string) map[string]interface{} {
 func CreateResponseDesc(key, param, desc string) map[string]interface{} {
 	code, err := strconv.Atoi(ErrorCodeTable[key][0])
 	if err != nil {
+		key = "500.1"
+		code = 500
+		param = "code of ErrorCodeTable not integer, please fix it, utils/error-message.go"
+		desc = "API回傳錯誤處理功能錯誤"
+	}
+	if strings.HasPrefix(key, "2") {
 		return map[string]interface{}{
-			"error_code":  500,
-			"error_msg":   "code of ErrorCodeTable not integer, please fix it, utils/error-message.go",
-			"description": "API回傳錯誤處理功能錯誤",
+			"error_code": code,
 		}
-	}
-	errMsg := setMessage(ErrorCodeTable[key][1], param)
-	if !strings.HasPrefix(key, "200") {
+	} else {
+		errMsg := setMessage(ErrorCodeTable[key][1], param)
 		log.Println("error message: ", code, errMsg)
-	}
-	if desc == "" {
-		desc = setMessage(ErrorCodeTable[key][2], param)
-	}
-	return map[string]interface{}{
-		"error_code":  code,
-		"error_msg":   errMsg,
-		"description": desc,
+		if desc == "" {
+			desc = setMessage(ErrorCodeTable[key][2], param)
+		}
+		return map[string]interface{}{
+			"error_code":  code,
+			"error_msg":   errMsg,
+			"description": desc,
+		}
 	}
 }
