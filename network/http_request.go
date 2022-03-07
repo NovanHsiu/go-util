@@ -56,26 +56,33 @@ func PostBodyRequest(url string, jsonStr string) (int, map[string]interface{}, e
 	return extractBody(res)
 }
 
-func PostFormDataWithFilesRequest(url string, params map[string]string, paramName string, paths []string) (int, map[string]interface{}, error) {
+type PostFile struct {
+	ParamName string
+	Paths     []string
+}
+
+func PostFormDataWithFilesRequest(url string, params map[string]string, postFiles []PostFile) (int, map[string]interface{}, error) {
 	pt := time.Now()
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
-	for _, path := range paths {
-		file, err := os.Open(path)
-		if err != nil {
-			log.Println("PostFormDataWithFilesRequest error: ", err)
-			return 500, nil, err
-		}
-		defer file.Close()
-		part, err := writer.CreateFormFile(paramName, filepath.Base(path))
-		if err != nil {
-			log.Println("PostFormDataWithFilesRequest create file error: ", err)
-			return 500, nil, err
-		}
-		_, err = io.Copy(part, file)
-		if err != nil {
-			log.Println("PostFormDataWithFilesRequest file copy error: ", err)
-			return 500, nil, err
+	for _, postFile := range postFiles {
+		for _, path := range postFile.Paths {
+			file, err := os.Open(path)
+			if err != nil {
+				log.Println("PostFormDataWithFilesRequest error: ", err)
+				return 500, nil, err
+			}
+			defer file.Close()
+			part, err := writer.CreateFormFile(postFile.ParamName, filepath.Base(path))
+			if err != nil {
+				log.Println("PostFormDataWithFilesRequest create file error: ", err)
+				return 500, nil, err
+			}
+			_, err = io.Copy(part, file)
+			if err != nil {
+				log.Println("PostFormDataWithFilesRequest file copy error: ", err)
+				return 500, nil, err
+			}
 		}
 	}
 	for key, val := range params {
