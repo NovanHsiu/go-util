@@ -227,12 +227,12 @@ func GetQueryRequest(url string, params map[string]string) (int, map[string]inte
 }
 
 func CheckInternetConnected() bool {
-	return CheckHttpServiceConnected("http://clients3.google.com/generate_204")
+	return CheckHttpServiceConnected("http://clients3.google.com/generate_204", RequestTimeOutSecond)
 }
 
-func CheckHttpServiceConnected(httpUrl string) bool {
+func CheckHttpServiceConnected(httpUrl string, timeOutSeconds int) bool {
 	client := &http.Client{
-		Timeout: time.Duration(time.Duration(RequestTimeOutSecond) * time.Second),
+		Timeout: time.Duration(time.Duration(timeOutSeconds) * time.Second),
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		},
