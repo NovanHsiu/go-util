@@ -19,11 +19,17 @@ var RequestTimeOutSecond = 30
 
 func extractBody(res *http.Response) (int, map[string]interface{}, error) {
 	body, _ := ioutil.ReadAll(res.Body)
+	if len(body) >= 3 {
+		// remove bom
+		if body[0] == 239 && body[1] == 187 && body[2] == 191 {
+			body = body[3:]
+		}
+	}
 	jsonMap := make(map[string]interface{})
 	err := json.Unmarshal(body, &jsonMap)
 	if err != nil {
-		log.Println("extractBody json unmarshal error", err)
-		return 500, nil, err
+		jsonMap["data"] = body
+		return res.StatusCode, jsonMap, err
 	}
 	return res.StatusCode, jsonMap, nil
 }
