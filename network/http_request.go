@@ -34,7 +34,13 @@ func extractBody(res *http.Response) (int, map[string]interface{}, error) {
 	return res.StatusCode, jsonMap, nil
 }
 
-func PostBodyRequest(url string, jsonStr string) (int, map[string]interface{}, error) {
+func setHeader(req *http.Request, header map[string]string) {
+	for key := range header {
+		req.Header.Set(key, header[key])
+	}
+}
+
+func PostBodyRequest(url string, jsonStr string, header map[string]string) (int, map[string]interface{}, error) {
 	pt := time.Now()
 	jsonBytes := []byte(jsonStr)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonBytes))
@@ -44,7 +50,7 @@ func PostBodyRequest(url string, jsonStr string) (int, map[string]interface{}, e
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Connection", "application/json")
-
+	setHeader(req, header)
 	client := &http.Client{
 		Timeout: time.Duration(time.Duration(RequestTimeOutSecond) * time.Second),
 		Transport: &http.Transport{
@@ -67,7 +73,7 @@ type PostFile struct {
 	Paths     []string
 }
 
-func PostFormDataWithFilesRequest(url string, params map[string]string, postFiles []PostFile) (int, map[string]interface{}, error) {
+func PostFormDataWithFilesRequest(url string, params map[string]string, postFiles []PostFile, header map[string]string) (int, map[string]interface{}, error) {
 	pt := time.Now()
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
@@ -101,6 +107,7 @@ func PostFormDataWithFilesRequest(url string, params map[string]string, postFile
 	}
 	req, err := http.NewRequest("POST", url, body)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
+	setHeader(req, header)
 	if err != nil {
 		log.Println("PostFormDataWithFilesRequest http new request error: ", err)
 		return 500, nil, err
@@ -121,7 +128,7 @@ func PostFormDataWithFilesRequest(url string, params map[string]string, postFile
 	return extractBody(res)
 }
 
-func PostSoapRequest(url string, payload []byte) (int, []byte, error) {
+func PostSoapRequest(url string, payload []byte, header map[string]string) (int, []byte, error) {
 	pt := time.Now()
 	httpMethod := "POST"
 
@@ -134,7 +141,7 @@ func PostSoapRequest(url string, payload []byte) (int, []byte, error) {
 
 	// set the content type header, as well as the oter required headers
 	req.Header.Set("Content-type", "text/xml;charset=utf-8")
-
+	setHeader(req, header)
 	// prepare the client request
 	client := &http.Client{
 		Timeout: time.Duration(time.Duration(RequestTimeOutSecond) * time.Second),
@@ -158,7 +165,7 @@ func PostSoapRequest(url string, payload []byte) (int, []byte, error) {
 	return res.StatusCode, bodyBytes, err
 }
 
-func PostFormDataRequest(url string, params map[string]string) (int, map[string]interface{}, error) {
+func PostFormDataRequest(url string, params map[string]string, header map[string]string) (int, map[string]interface{}, error) {
 	pt := time.Now()
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
@@ -172,6 +179,7 @@ func PostFormDataRequest(url string, params map[string]string) (int, map[string]
 	}
 	req, err := http.NewRequest("POST", url, body)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
+	setHeader(req, header)
 	if err != nil {
 		log.Println("PostFormDataRequest http new request error: ", err)
 		return 500, nil, err
@@ -192,7 +200,7 @@ func PostFormDataRequest(url string, params map[string]string) (int, map[string]
 	return extractBody(res)
 }
 
-func GetQueryRequest(url string, params map[string]string) (int, map[string]interface{}, error) {
+func GetQueryRequest(url string, params map[string]string, header map[string]string) (int, map[string]interface{}, error) {
 	pt := time.Now()
 	query := ""
 	for key, val := range params {
@@ -214,7 +222,7 @@ func GetQueryRequest(url string, params map[string]string) (int, map[string]inte
 		log.Println("GetQueryRequest http client new request error:", err)
 		return 500, nil, err
 	}
-	//req.Header.Add("Authorization", "")
+	setHeader(req, header)
 	res, err := client.Do(req)
 	defer client.CloseIdleConnections()
 	if err != nil {
@@ -250,7 +258,7 @@ func CheckHttpServiceConnected(httpUrl string, timeOutSeconds int) bool {
 	return true
 }
 
-func DownloadFile(url string, filepath string) error {
+func DownloadFile(url string, filepath string, header map[string]string) error {
 	// download the file and check this url is ok
 	client := &http.Client{
 		Timeout: time.Duration(time.Duration(RequestTimeOutSecond) * time.Second),
@@ -262,7 +270,7 @@ func DownloadFile(url string, filepath string) error {
 	if err != nil {
 		return err
 	}
-	//req.Header.Add("Authorization", "")
+	setHeader(req, header)
 	resp, err := client.Do(req)
 	defer client.CloseIdleConnections()
 	if err != nil {
