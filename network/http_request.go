@@ -40,12 +40,12 @@ func setHeader(req *http.Request, header map[string]string) {
 	}
 }
 
-func PostBodyRequest(url string, jsonStr string, header map[string]string) (int, map[string]interface{}, error) {
+func SendBodyRequest(method, url, jsonStr string, header map[string]string) (int, map[string]interface{}, error) {
 	pt := time.Now()
 	jsonBytes := []byte(jsonStr)
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonBytes))
+	req, err := http.NewRequest(method, url, bytes.NewBuffer(jsonBytes))
 	if err != nil {
-		log.Println("PostBodyRequest http client new request error:", err)
+		log.Println("SendBodyRequest http client new request error:", err)
 		return 500, nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
@@ -60,7 +60,7 @@ func PostBodyRequest(url string, jsonStr string, header map[string]string) (int,
 	res, err := client.Do(req)
 	defer client.CloseIdleConnections()
 	if err != nil {
-		log.Println("PostBodyRequest http client do error:", err)
+		log.Println("SendBodyRequest http client do error:", err)
 		return 500, nil, err
 	}
 	defer res.Body.Close()
@@ -68,31 +68,31 @@ func PostBodyRequest(url string, jsonStr string, header map[string]string) (int,
 	return extractBody(res)
 }
 
-type PostFile struct {
+type SendFile struct {
 	ParamName string
 	Paths     []string
 }
 
-func PostFormDataWithFilesRequest(url string, params map[string]string, postFiles []PostFile, header map[string]string) (int, map[string]interface{}, error) {
+func SendFormDataWithFilesRequest(method, url string, params map[string]string, sendFiles []SendFile, header map[string]string) (int, map[string]interface{}, error) {
 	pt := time.Now()
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
-	for _, postFile := range postFiles {
-		for _, path := range postFile.Paths {
+	for _, sendFile := range sendFiles {
+		for _, path := range sendFile.Paths {
 			file, err := os.Open(path)
 			if err != nil {
-				log.Println("PostFormDataWithFilesRequest error: ", err)
+				log.Println("SendFormDataWithFilesRequest error: ", err)
 				return 500, nil, err
 			}
 			defer file.Close()
-			part, err := writer.CreateFormFile(postFile.ParamName, filepath.Base(path))
+			part, err := writer.CreateFormFile(sendFile.ParamName, filepath.Base(path))
 			if err != nil {
-				log.Println("PostFormDataWithFilesRequest create file error: ", err)
+				log.Println("SendFormDataWithFilesRequest create file error: ", err)
 				return 500, nil, err
 			}
 			_, err = io.Copy(part, file)
 			if err != nil {
-				log.Println("PostFormDataWithFilesRequest file copy error: ", err)
+				log.Println("SendFormDataWithFilesRequest file copy error: ", err)
 				return 500, nil, err
 			}
 		}
@@ -102,14 +102,14 @@ func PostFormDataWithFilesRequest(url string, params map[string]string, postFile
 	}
 	err := writer.Close()
 	if err != nil {
-		log.Println("PostFormDataWithFilesRequest writer error: ", err)
+		log.Println("SendFormDataWithFilesRequest writer error: ", err)
 		return 500, nil, err
 	}
-	req, err := http.NewRequest("POST", url, body)
+	req, err := http.NewRequest(method, url, body)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	setHeader(req, header)
 	if err != nil {
-		log.Println("PostFormDataWithFilesRequest http new request error: ", err)
+		log.Println("SendFormDataWithFilesRequest http new request error: ", err)
 		return 500, nil, err
 	}
 	client := &http.Client{
@@ -121,21 +121,20 @@ func PostFormDataWithFilesRequest(url string, params map[string]string, postFile
 	res, err := client.Do(req)
 	defer client.CloseIdleConnections()
 	if err != nil {
-		log.Println("PostFormDataWithFilesRequest http client do error: ", err)
+		log.Println("SendFormDataWithFilesRequest http client do error: ", err)
 		return 500, nil, err
 	}
 	showRespTimeLog(url, pt)
 	return extractBody(res)
 }
 
-func PostSoapRequest(url string, payload []byte, header map[string]string) (int, []byte, error) {
+func SendSoapRequest(method, url string, payload []byte, header map[string]string) (int, []byte, error) {
 	pt := time.Now()
-	httpMethod := "POST"
 
 	// prepare the request
-	req, err := http.NewRequest(httpMethod, url, bytes.NewReader(payload))
+	req, err := http.NewRequest(method, url, bytes.NewReader(payload))
 	if err != nil {
-		log.Println("PostSoapRequest error creating request object", err)
+		log.Println("SendSoapRequest error creating request object", err)
 		return 500, nil, err
 	}
 
@@ -156,7 +155,7 @@ func PostSoapRequest(url string, payload []byte, header map[string]string) (int,
 	res, err := client.Do(req)
 	defer client.CloseIdleConnections()
 	if err != nil {
-		log.Println("PostSoapRequest error http client do", err)
+		log.Println("SendSoapRequest error http client do", err)
 		return 500, nil, err
 	}
 	showRespTimeLog(url, pt)
@@ -165,7 +164,7 @@ func PostSoapRequest(url string, payload []byte, header map[string]string) (int,
 	return res.StatusCode, bodyBytes, err
 }
 
-func PostFormDataRequest(url string, params map[string]string, header map[string]string) (int, map[string]interface{}, error) {
+func SendFormDataRequest(method, url string, params map[string]string, header map[string]string) (int, map[string]interface{}, error) {
 	pt := time.Now()
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
@@ -174,14 +173,14 @@ func PostFormDataRequest(url string, params map[string]string, header map[string
 	}
 	err := writer.Close()
 	if err != nil {
-		log.Println("PostFormDataRequest writer error: ", err)
+		log.Println("SendFormDataRequest writer error: ", err)
 		return 500, nil, err
 	}
-	req, err := http.NewRequest("POST", url, body)
+	req, err := http.NewRequest(method, url, body)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	setHeader(req, header)
 	if err != nil {
-		log.Println("PostFormDataRequest http new request error: ", err)
+		log.Println("SendFormDataRequest http new request error: ", err)
 		return 500, nil, err
 	}
 	client := &http.Client{
@@ -193,14 +192,14 @@ func PostFormDataRequest(url string, params map[string]string, header map[string
 	res, err := client.Do(req)
 	defer client.CloseIdleConnections()
 	if err != nil {
-		log.Println("PostFormDataRequest http client do error: ", err)
+		log.Println("SendFormDataRequest http client do error: ", err)
 		return 500, nil, err
 	}
 	showRespTimeLog(url, pt)
 	return extractBody(res)
 }
 
-func GetQueryRequest(url string, params map[string]string, header map[string]string) (int, map[string]interface{}, error) {
+func SendQueryRequest(method, url string, params map[string]string, header map[string]string) (int, map[string]interface{}, error) {
 	pt := time.Now()
 	query := ""
 	for key, val := range params {
@@ -217,21 +216,41 @@ func GetQueryRequest(url string, params map[string]string, header map[string]str
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		},
 	}
-	req, err := http.NewRequest("GET", url+query, nil)
+	req, err := http.NewRequest(method, url+query, nil)
 	if err != nil {
-		log.Println("GetQueryRequest http client new request error:", err)
+		log.Println("SendQueryRequest http client new request error:", err)
 		return 500, nil, err
 	}
 	setHeader(req, header)
 	res, err := client.Do(req)
 	defer client.CloseIdleConnections()
 	if err != nil {
-		log.Println("GetQueryRequest http client do error:", err)
+		log.Println("SendQueryRequest http client do error:", err)
 		return 500, nil, err
 	}
 	defer res.Body.Close()
 	showRespTimeLog(url, pt)
 	return extractBody(res)
+}
+
+func PostBodyRequest(url string, jsonStr string, header map[string]string) (int, map[string]interface{}, error) {
+	return SendBodyRequest("POST", url, jsonStr, header)
+}
+
+func PostFormDataWithFilesRequest(url string, params map[string]string, sendFiles []SendFile, header map[string]string) (int, map[string]interface{}, error) {
+	return SendFormDataWithFilesRequest("POST", url, params, sendFiles, header)
+}
+
+func PostSoapRequest(url string, payload []byte, header map[string]string) (int, []byte, error) {
+	return SendSoapRequest("POST", url, payload, header)
+}
+
+func PostFormDataRequest(url string, params map[string]string, header map[string]string) (int, map[string]interface{}, error) {
+	return SendFormDataRequest("POST", url, params, header)
+}
+
+func GetQueryRequest(url string, params map[string]string, header map[string]string) (int, map[string]interface{}, error) {
+	return SendQueryRequest("GET", url, params, header)
 }
 
 func CheckInternetConnected() bool {
