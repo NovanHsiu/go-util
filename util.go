@@ -1,6 +1,7 @@
 package goutil
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -218,15 +219,25 @@ func ConvertChineseGender(gender string) string {
 	return "Unknown"
 }
 
-func Execute(cmd string, args ...string) (string, error) {
-	out, err := exec.Command(cmd, args...).Output()
-	output := string(out[:])
-	return output, err
+// Execute execute terminal's command
+// retrun stdout, stderr & error
+func Execute(cmdstr string, args ...string) (string, string, error) {
+	cmd := exec.Command(cmdstr, args...)
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	return stdout.String(), stderr.String(), err
+
 }
 
+// ExecuteBackground execute terminal's command in the background
+// retrun pid, error
 func ExecuteBackground(cmdstr string, args ...string) (int, error) {
 	cmd := exec.Command(cmdstr, args...)
-	cmd.Stdout = os.Stdout
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
 	err := cmd.Start()
 	if err != nil {
 		return 0, err
@@ -235,6 +246,7 @@ func ExecuteBackground(cmdstr string, args ...string) (int, error) {
 		err = cmd.Wait()
 		if err != nil {
 			log.Println("ExecuteBackground error: " + cmdstr + fmt.Sprintf(" %v"+err.Error()))
+			log.Printf("stdout: %q, stderr: %q\n", stdout.String(), stderr.String())
 		}
 	}()
 	return cmd.Process.Pid, nil
@@ -244,7 +256,7 @@ func ExecuteBackground(cmdstr string, args ...string) (int, error) {
 func GetMacAddress() string {
 	// for windows
 	if runtime.GOOS == "windows" {
-		stdout, _ := Execute("getmac")
+		stdout, _, _ := Execute("getmac")
 		var macAddress string
 		lineSplit := strings.Split(stdout, "\n")
 		for _, line := range lineSplit {
@@ -256,7 +268,7 @@ func GetMacAddress() string {
 		return macAddress
 	}
 	// for liniux
-	stdout, _ := Execute("cat", "/sys/class/net/eth0/address")
+	stdout, _, _ := Execute("cat", "/sys/class/net/eth0/address")
 	return strings.Replace(stdout, "\n", "", 1)
 }
 
