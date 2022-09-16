@@ -308,3 +308,15 @@ func WriteJSONConfig(path string, jsonMap map[string]interface{}) error {
 	}
 	return nil
 }
+
+func RemoveDuplicateString(slice []string) []string {
+	allKeys := make(map[string]bool)
+	newSlice := []string{}
+	for _, item := range slice {
+		if _, value := allKeys[item]; !value {
+			allKeys[item] = true
+			newSlice = append(newSlice, item)
+		}
+	}
+	return newSlice
+}
