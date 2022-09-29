@@ -34,6 +34,8 @@ func SQLTimeStringToTime(t string) (time.Time, error) {
 	return time.Parse(TimeLayout, t)
 }
 
+// SQLTimeStringToTimeUTCZero turn sql fromat time string to time type and time zone is UTC+0
+func SQLTimeStringToTimeUTCZero(t string) (time.Time, error) {
 	_, offset := time.Now().Zone()
 	offsetSecond, _ := time.ParseDuration(fmt.Sprintf("%ds", offset))
 	ctime, err := time.Parse(TimeLayout, t)
