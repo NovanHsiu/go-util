@@ -31,6 +31,9 @@ func SQLTimeFormatToString(t time.Time) string {
 
 // SQLTimeStringToTime turn sql fromat time string to time type
 func SQLTimeStringToTime(t string) (time.Time, error) {
+	return time.Parse(TimeLayout, t)
+}
+
 	_, offset := time.Now().Zone()
 	offsetSecond, _ := time.ParseDuration(fmt.Sprintf("%ds", offset))
 	ctime, err := time.Parse(TimeLayout, t)
