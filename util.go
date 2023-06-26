@@ -24,6 +24,9 @@ const randomText = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWX
 
 var ImageExtName = []string{".jpg", ".jpeg", ".png", ".bmp", ".gif"}
 
+var moduleLanguage = "zh-Hant"
+var moduleLanguageCodes = []string{"en", "zh-Hant", "zh-Hans"}
+
 // SQLTimeFormatToString turn time to sql format time in string
 func SQLTimeFormatToString(t time.Time) string {
 	return fmt.Sprintf("%d-%02d-%02d %02d:%02d:%02d", t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second())
@@ -324,4 +327,79 @@ func RemoveDuplicateString(slice []string) []string {
 		}
 	}
 	return newSlice
+}
+
+// GetSystemLanguage get system's language setting
+//
+// Only support for detecting the following languages: en, zh-Hant, zh-Hans. (The returned names refer to the List of ISO 639-1 codes)
+// All other languages will be treated as English.
+func GetSystemLanguage() string {
+	switch os := runtime.GOOS; os {
+	case "windows":
+		cmd := exec.Command("powershell", "-c", "(Get-WinUserLanguageList).LocalizedName")
+		output, err := cmd.Output()
+		if err != nil {
+			fmt.Println("error:", err)
+			return "en"
+		}
+		stdout := string(output)
+		if strings.Index(stdout, "Chinese") == 0 {
+			stdoutSplit := strings.Split(stdout, "\n")
+			if strings.Contains(stdoutSplit[0], "Traditional") {
+				return "zh-Hant"
+			} else {
+				return "zh-Hans"
+			}
+		} else if strings.Index(stdout, "English") == 0 {
+			return "en"
+		} else {
+			return "en"
+		}
+	case "linux":
+		return getLangFromUnixSystem()
+	case "darwin":
+		return getLangFromUnixSystem()
+	default:
+		fmt.Println("Others OS")
+		return "en"
+	}
+}
+
+func getLangFromUnixSystem() string {
+	cmd := exec.Command("locale")
+	output, err := cmd.Output()
+	if err != nil {
+		fmt.Println("error:", err)
+		return "en"
+	}
+	stdout := string(output)
+	stdout = strings.ReplaceAll(stdout, `"`, "")
+	if strings.Index(stdout, "LANG=zh") > 0 {
+		if strings.Index(stdout, "LANG=zh_CN") > 0 {
+			return "zh-Hans"
+		} else {
+			return "zh-Hant"
+		}
+	} else if strings.Index(stdout, "LANG=en") > 0 {
+		return "en"
+	} else {
+		return "en"
+	}
+}
+
+// SetModuleLanguage set module's language
+//
+// Only support the following languages: en, zh-Hant, zh-Hans.
+func SetModuleLanguage(langCode string) error {
+	if ArrayIncludeString(moduleLanguageCodes, langCode, false) {
+		moduleLanguage = langCode
+		setErrorCodeTable(moduleLanguage)
+		return nil
+	} else {
+		return fmt.Errorf("language code error, must be %v", moduleLanguageCodes)
+	}
+}
+
+func GetModuleLanguage() string {
+	return moduleLanguage
 }

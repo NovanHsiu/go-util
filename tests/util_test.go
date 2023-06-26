@@ -39,3 +39,13 @@ func TestPostFormDataWithFilesRequest(t *testing.T) {
 	}*/
 	fmt.Println("pass")
 }
+
+func TestGetSystemLanguage(t *testing.T) {
+	langCode := goutil.GetSystemLanguage()
+	fmt.Println(langCode)
+}
+
+func TestSetModuelLanguage(t *testing.T) {
+	goutil.SetModuleLanguage("en")
+	fmt.Println(goutil.ErrorCodeTable)
+}
