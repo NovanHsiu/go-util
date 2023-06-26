@@ -12,7 +12,9 @@ import (
 
 func TestUtil(t *testing.T) {
 	sqlnowtime := goutil.SQLTimeFormatToString(time.Now())
-	t.Errorf("SQLTimeFormatToString failed! SQL Now Time: %s", sqlnowtime)
+	if sqlnowtime == "" {
+		t.Errorf("SQLTimeFormatToString failed! SQL Now Time: %s", sqlnowtime)
+	}
 }
 
 func TestErrorHandler(t *testing.T) {
@@ -26,7 +28,9 @@ func TestHttpRequest(t *testing.T) {
 func TestCipher(t *testing.T) {
 	cp := cipher.DefaultCipher()
 	passwd := cp.EncodePassword("abcdefg")
-	t.Errorf("TestCipher failed! password: %s", passwd)
+	if passwd == "" {
+		t.Errorf("TestCipher failed! password: %s", passwd)
+	}
 }
 
 func TestPostFormDataWithFilesRequest(t *testing.T) {
@@ -43,6 +47,7 @@ func TestPostFormDataWithFilesRequest(t *testing.T) {
 func TestGetSystemLanguage(t *testing.T) {
 	langCode := goutil.GetSystemLanguage()
 	fmt.Println(langCode)
+	//t.Errorf("TestGetSystemLanguage failed!")
 }
 
 func TestSetModuelLanguage(t *testing.T) {

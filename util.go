@@ -336,21 +336,20 @@ func RemoveDuplicateString(slice []string) []string {
 func GetSystemLanguage() string {
 	switch os := runtime.GOOS; os {
 	case "windows":
-		cmd := exec.Command("powershell", "-c", "(Get-WinUserLanguageList).LocalizedName")
+		cmd := exec.Command("powershell", "-c", "Get-WinSystemLocale")
 		output, err := cmd.Output()
 		if err != nil {
 			fmt.Println("error:", err)
 			return "en"
 		}
-		stdout := string(output)
-		if strings.Index(stdout, "Chinese") == 0 {
-			stdoutSplit := strings.Split(stdout, "\n")
-			if strings.Contains(stdoutSplit[0], "Traditional") {
-				return "zh-Hant"
-			} else {
+		stdout := strings.ToLower(string(output))
+		if strings.Contains(stdout, "zh-") {
+			if strings.Contains(stdout, "zh-cn") || strings.Contains(stdout, "zh-sg") || strings.Contains(stdout, "zh-hans") {
 				return "zh-Hans"
+			} else {
+				return "zh-Hant"
 			}
-		} else if strings.Index(stdout, "English") == 0 {
+		} else if strings.Index(stdout, "en-") == 0 {
 			return "en"
 		} else {
 			return "en"
@@ -372,15 +371,15 @@ func getLangFromUnixSystem() string {
 		fmt.Println("error:", err)
 		return "en"
 	}
-	stdout := string(output)
+	stdout := strings.ToLower(string(output))
 	stdout = strings.ReplaceAll(stdout, `"`, "")
-	if strings.Index(stdout, "LANG=zh") > 0 {
-		if strings.Index(stdout, "LANG=zh_CN") > 0 {
+	if strings.Index(stdout, "lang=zh") > 0 {
+		if strings.Index(stdout, "lang=zh_cn") > 0 {
 			return "zh-Hans"
 		} else {
 			return "zh-Hant"
 		}
-	} else if strings.Index(stdout, "LANG=en") > 0 {
+	} else if strings.Index(stdout, "lang=en") > 0 {
 		return "en"
 	} else {
 		return "en"
