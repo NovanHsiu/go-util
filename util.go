@@ -15,6 +15,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -258,6 +259,21 @@ func ExecuteBackground(cmdstr string, args ...string) (int, error) {
 		}
 	}()
 	return cmd.Process.Pid, nil
+}
+
+// ExecuteHideWindow execute terminal's command and hide window
+// retrun stdout, stderr & error
+func ExecuteHideWindow(cmdstr string, args ...string) (string, string, error) {
+	cmd := exec.Command(cmdstr, args...)
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		HideWindow:    true,
+		CreationFlags: syscall.IOC_WS2,
+	}
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	return stdout.String(), stderr.String(), err
 }
 
 // GetMacAddress get mac address of this device
