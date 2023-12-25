@@ -296,6 +296,9 @@ func DownloadFile(url string, filepath string, header map[string]string) error {
 		return err
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode >= 400 {
+		return fmt.Errorf("status code is %d", resp.StatusCode)
+	}
 	// Create the file
 	out, err := os.Create(filepath)
 	if err != nil {
