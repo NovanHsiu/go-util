@@ -14,27 +14,27 @@ type CustomClaims struct {
 }
 
 type Cipher struct {
-	TokenExpiredHours int
-	HashCost          int
-	PassPhrase        string
+	TokenExpiresDuration time.Duration
+	HashCost             int
+	PassPhrase           string
 }
 
 func DefaultCipher() Cipher {
 	// PrivateKey used to encrypt and decrypt, lenght must be 32
 	return Cipher{
-		TokenExpiredHours: 24,
-		HashCost:          11,
-		PassPhrase:        "default passphrase",
+		TokenExpiresDuration: time.Duration(24) * time.Hour,
+		HashCost:             11,
+		PassPhrase:           "default passphrase",
 	}
 }
 
 // NewCipher new a cihper
-func NewCipher(tokenExpiredHours, hashCost int, passPhrase string) Cipher {
+func NewCipher(tokenExpiresDuration time.Duration, hashCost int, passPhrase string) Cipher {
 	// PrivateKey used to encrypt and decrypt, lenght must be 32
 	return Cipher{
-		TokenExpiredHours: tokenExpiredHours,
-		HashCost:          hashCost,
-		PassPhrase:        passPhrase,
+		TokenExpiresDuration: tokenExpiresDuration,
+		HashCost:             hashCost,
+		PassPhrase:           passPhrase,
 	}
 }
 
@@ -55,7 +55,7 @@ func (c *Cipher) GetJWT(message string) string {
 	claims := CustomClaims{
 		message,
 		jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(time.Duration(c.TokenExpiredHours) * time.Hour).Unix(), // 1 day
+			ExpiresAt: time.Now().Add(c.TokenExpiresDuration).Unix(), // default 1 day
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
