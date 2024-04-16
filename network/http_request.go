@@ -15,7 +15,54 @@ import (
 	"time"
 )
 
-var RequestTimeOutSecond = 30
+type HttpClient struct {
+	TimeoutSeconds             int
+	InsecureSkipVerify         bool
+	EnabledSingledResuedClient bool
+	client                     *http.Client
+}
+
+func NewHttpClient(timeoutSeconds int, insecureSkipVerify, enabledSingledResuedClient bool) *HttpClient {
+	httpClient := HttpClient{
+		TimeoutSeconds:             timeoutSeconds,
+		InsecureSkipVerify:         insecureSkipVerify,
+		EnabledSingledResuedClient: enabledSingledResuedClient,
+	}
+	httpClient.client = &http.Client{
+		Timeout: time.Duration(time.Duration(timeoutSeconds) * time.Second),
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: insecureSkipVerify},
+		},
+	}
+	return &httpClient
+}
+
+func NewDefaultHttpClient() *HttpClient {
+	return NewHttpClient(30, true, true)
+}
+
+func (c *HttpClient) getClient() *http.Client {
+	if c.EnabledSingledResuedClient {
+		return c.client
+	}
+	client := &http.Client{
+		Timeout: time.Duration(time.Duration(c.TimeoutSeconds) * time.Second),
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: c.InsecureSkipVerify},
+		},
+	}
+	return client
+}
+
+func (c *HttpClient) closeIdleConnections(client *http.Client) {
+	if !c.EnabledSingledResuedClient {
+		client.CloseIdleConnections()
+	}
+}
+
+func (c *HttpClient) Close() {
+	c.client.CloseIdleConnections()
+}
 
 func extractBody(res *http.Response) (int, map[string]interface{}, error) {
 	body, _ := ioutil.ReadAll(res.Body)
@@ -40,7 +87,7 @@ func setHeader(req *http.Request, header map[string]string) {
 	}
 }
 
-func SendBodyRequest(method, url, jsonStr string, header map[string]string) (int, map[string]interface{}, error) {
+func (c *HttpClient) SendBodyRequest(method, url, jsonStr string, header map[string]string) (int, map[string]interface{}, error) {
 	pt := time.Now()
 	jsonBytes := []byte(jsonStr)
 	req, err := http.NewRequest(method, url, bytes.NewBuffer(jsonBytes))
@@ -51,14 +98,9 @@ func SendBodyRequest(method, url, jsonStr string, header map[string]string) (int
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Connection", "application/json")
 	setHeader(req, header)
-	client := &http.Client{
-		Timeout: time.Duration(time.Duration(RequestTimeOutSecond) * time.Second),
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		},
-	}
+	client := c.getClient()
 	res, err := client.Do(req)
-	defer client.CloseIdleConnections()
+	defer c.closeIdleConnections(client)
 	if err != nil {
 		log.Println("SendBodyRequest http client do error:", err)
 		return 500, nil, err
@@ -73,7 +115,7 @@ type SendFile struct {
 	Paths     []string
 }
 
-func SendFormDataWithFilesRequest(method, url string, params map[string]string, sendFiles []SendFile, header map[string]string) (int, map[string]interface{}, error) {
+func (c *HttpClient) SendFormDataWithFilesRequest(method, url string, params map[string]string, sendFiles []SendFile, header map[string]string) (int, map[string]interface{}, error) {
 	pt := time.Now()
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
@@ -112,14 +154,9 @@ func SendFormDataWithFilesRequest(method, url string, params map[string]string, 
 		log.Println("SendFormDataWithFilesRequest http new request error: ", err)
 		return 500, nil, err
 	}
-	client := &http.Client{
-		Timeout: time.Duration(time.Duration(RequestTimeOutSecond) * time.Second),
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		},
-	}
+	client := c.getClient()
 	res, err := client.Do(req)
-	defer client.CloseIdleConnections()
+	defer c.closeIdleConnections(client)
 	if err != nil {
 		log.Println("SendFormDataWithFilesRequest http client do error: ", err)
 		return 500, nil, err
@@ -128,7 +165,7 @@ func SendFormDataWithFilesRequest(method, url string, params map[string]string, 
 	return extractBody(res)
 }
 
-func SendSoapRequest(method, url string, payload []byte, header map[string]string) (int, []byte, error) {
+func (c *HttpClient) SendSoapRequest(method, url string, payload []byte, header map[string]string) (int, []byte, error) {
 	pt := time.Now()
 
 	// prepare the request
@@ -142,18 +179,11 @@ func SendSoapRequest(method, url string, payload []byte, header map[string]strin
 	req.Header.Set("Content-type", "text/xml;charset=utf-8")
 	setHeader(req, header)
 	// prepare the client request
-	client := &http.Client{
-		Timeout: time.Duration(time.Duration(RequestTimeOutSecond) * time.Second),
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true,
-			},
-		},
-	}
+	client := c.getClient()
 
 	// dispatch the request
 	res, err := client.Do(req)
-	defer client.CloseIdleConnections()
+	defer c.closeIdleConnections(client)
 	if err != nil {
 		log.Println("SendSoapRequest error http client do", err)
 		return 500, nil, err
@@ -164,7 +194,7 @@ func SendSoapRequest(method, url string, payload []byte, header map[string]strin
 	return res.StatusCode, bodyBytes, err
 }
 
-func SendFormDataRequest(method, url string, params map[string]string, header map[string]string) (int, map[string]interface{}, error) {
+func (c *HttpClient) SendFormDataRequest(method, url string, params map[string]string, header map[string]string) (int, map[string]interface{}, error) {
 	pt := time.Now()
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
@@ -183,14 +213,9 @@ func SendFormDataRequest(method, url string, params map[string]string, header ma
 		log.Println("SendFormDataRequest http new request error: ", err)
 		return 500, nil, err
 	}
-	client := &http.Client{
-		Timeout: time.Duration(time.Duration(RequestTimeOutSecond) * time.Second),
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		},
-	}
+	client := c.getClient()
 	res, err := client.Do(req)
-	defer client.CloseIdleConnections()
+	defer c.closeIdleConnections(client)
 	if err != nil {
 		log.Println("SendFormDataRequest http client do error: ", err)
 		return 500, nil, err
@@ -199,7 +224,7 @@ func SendFormDataRequest(method, url string, params map[string]string, header ma
 	return extractBody(res)
 }
 
-func SendQueryRequest(method, url string, params map[string]string, header map[string]string) (int, map[string]interface{}, error) {
+func (c *HttpClient) SendQueryRequest(method, url string, params map[string]string, header map[string]string) (int, map[string]interface{}, error) {
 	pt := time.Now()
 	query := ""
 	for key, val := range params {
@@ -210,12 +235,7 @@ func SendQueryRequest(method, url string, params map[string]string, header map[s
 		}
 		query += key + "=" + val
 	}
-	client := &http.Client{
-		Timeout: time.Duration(time.Duration(RequestTimeOutSecond) * time.Second),
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		},
-	}
+	client := c.getClient()
 	req, err := http.NewRequest(method, url+query, nil)
 	if err != nil {
 		log.Println("SendQueryRequest http client new request error:", err)
@@ -223,7 +243,7 @@ func SendQueryRequest(method, url string, params map[string]string, header map[s
 	}
 	setHeader(req, header)
 	res, err := client.Do(req)
-	defer client.CloseIdleConnections()
+	defer c.closeIdleConnections(client)
 	if err != nil {
 		log.Println("SendQueryRequest http client do error:", err)
 		return 500, nil, err
@@ -233,43 +253,38 @@ func SendQueryRequest(method, url string, params map[string]string, header map[s
 	return extractBody(res)
 }
 
-func PostBodyRequest(url string, jsonStr string, header map[string]string) (int, map[string]interface{}, error) {
-	return SendBodyRequest("POST", url, jsonStr, header)
+func (c *HttpClient) PostBodyRequest(url string, jsonStr string, header map[string]string) (int, map[string]interface{}, error) {
+	return c.SendBodyRequest("POST", url, jsonStr, header)
 }
 
-func PostFormDataWithFilesRequest(url string, params map[string]string, sendFiles []SendFile, header map[string]string) (int, map[string]interface{}, error) {
-	return SendFormDataWithFilesRequest("POST", url, params, sendFiles, header)
+func (c *HttpClient) PostFormDataWithFilesRequest(url string, params map[string]string, sendFiles []SendFile, header map[string]string) (int, map[string]interface{}, error) {
+	return c.SendFormDataWithFilesRequest("POST", url, params, sendFiles, header)
 }
 
-func PostSoapRequest(url string, payload []byte, header map[string]string) (int, []byte, error) {
-	return SendSoapRequest("POST", url, payload, header)
+func (c *HttpClient) PostSoapRequest(url string, payload []byte, header map[string]string) (int, []byte, error) {
+	return c.SendSoapRequest("POST", url, payload, header)
 }
 
-func PostFormDataRequest(url string, params map[string]string, header map[string]string) (int, map[string]interface{}, error) {
-	return SendFormDataRequest("POST", url, params, header)
+func (c *HttpClient) PostFormDataRequest(url string, params map[string]string, header map[string]string) (int, map[string]interface{}, error) {
+	return c.SendFormDataRequest("POST", url, params, header)
 }
 
-func GetQueryRequest(url string, params map[string]string, header map[string]string) (int, map[string]interface{}, error) {
-	return SendQueryRequest("GET", url, params, header)
+func (c *HttpClient) GetQueryRequest(url string, params map[string]string, header map[string]string) (int, map[string]interface{}, error) {
+	return c.SendQueryRequest("GET", url, params, header)
 }
 
-func CheckInternetConnected() bool {
-	return CheckHttpServiceConnected("http://clients3.google.com/generate_204", RequestTimeOutSecond)
+func (c *HttpClient) CheckInternetConnected() bool {
+	return c.CheckHttpServiceConnected("http://clients3.google.com/generate_204")
 }
 
-func CheckHttpServiceConnected(httpUrl string, timeOutSeconds int) bool {
-	client := &http.Client{
-		Timeout: time.Duration(time.Duration(timeOutSeconds) * time.Second),
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		},
-	}
+func (c *HttpClient) CheckHttpServiceConnected(httpUrl string) bool {
+	client := c.getClient()
 	req, err := http.NewRequest("GET", httpUrl, nil)
 	if err != nil {
 		return false
 	}
 	res, err := client.Do(req)
-	defer client.CloseIdleConnections()
+	defer c.closeIdleConnections(client)
 	if err != nil {
 		return false
 	}
@@ -277,21 +292,16 @@ func CheckHttpServiceConnected(httpUrl string, timeOutSeconds int) bool {
 	return true
 }
 
-func DownloadFile(url string, filepath string, header map[string]string) error {
+func (c *HttpClient) DownloadFile(url string, filepath string, header map[string]string) error {
 	// download the file and check this url is ok
-	client := &http.Client{
-		Timeout: time.Duration(time.Duration(RequestTimeOutSecond) * time.Second),
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		},
-	}
+	client := c.getClient()
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return err
 	}
 	setHeader(req, header)
 	resp, err := client.Do(req)
-	defer client.CloseIdleConnections()
+	defer c.closeIdleConnections(client)
 	if err != nil {
 		return err
 	}

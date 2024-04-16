@@ -22,7 +22,16 @@ func TestErrorHandler(t *testing.T) {
 }
 
 func TestHttpRequest(t *testing.T) {
-	fmt.Println(network.RequestTimeOutSecond)
+	httpClient := network.NewHttpClient(10, true, true)
+	defer httpClient.Close()
+	scode, _, err := httpClient.GetQueryRequest("https://www.google.com.tw", nil, nil)
+	if scode >= 400 {
+		t.Errorf("network.GetQueryRequest https://www.google.com.tw, scode: %d, error: %v, need scode = 200", scode, err)
+	}
+	scode, _, err = httpClient.GetQueryRequest("https://www.amazon.com", nil, nil)
+	if scode >= 400 {
+		t.Errorf("network.GetQueryRequest https://www.amazon.com, scode: %d, error: %v, need scode = 200", scode, err)
+	}
 }
 
 func TestCipher(t *testing.T) {
